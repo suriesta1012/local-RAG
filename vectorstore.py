@@ -1,20 +1,27 @@
 # vectorstore.py
-from langchain_community.vectorstores import OpenSearchVectorSearch
-from opensearchpy import OpenSearch
-from embeddings import get_embeddings
-from config import OPENSEARCH_HOST, OPENSEARCH_PORT, OPENSEARCH_INDEX
+"""
+ChromaDB-backed vector store.
 
-def get_vectorstore():
-    embeddings = get_embeddings()
-    client = OpenSearch(
-        hosts=[{"host": OPENSEARCH_HOST, "port": OPENSEARCH_PORT}],
-        http_auth=None,  # Add auth if needed
-        use_ssl=False,
-        verify_certs=False,
-    )
-    return OpenSearchVectorSearch(
-        opensearch_url=f"http://{OPENSEARCH_HOST}:{OPENSEARCH_PORT}",
-        index_name=OPENSEARCH_INDEX,
-        embedding_function=embeddings,
-        opensearch_client=client,
+ChromaDB runs in-process and persists data to a local folder —
+no Docker, no JVM, no external service required.
+"""
+
+from functools import lru_cache
+
+from langchain_community.vectorstores import Chroma
+
+from config import CHROMA_COLLECTION, CHROMA_PERSIST_DIR
+from embeddings import get_embeddings
+
+
+@lru_cache(maxsize=1)
+def get_vectorstore() -> Chroma:
+    """
+    Return a cached Chroma vector store instance.
+    The store is created (or re-opened) lazily on first use.
+    """
+    return Chroma(
+        collection_name=CHROMA_COLLECTION,
+        embedding_function=get_embeddings(),
+        persist_directory=CHROMA_PERSIST_DIR,
     )
